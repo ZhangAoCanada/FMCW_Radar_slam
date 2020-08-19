@@ -6,18 +6,6 @@ from util import *
 from radar_frame import Frame
 from radar_slam import RSLAM
 
-# Radar Configuration
-RADAR_CONFIG_FREQ = 77 # GHz
-DESIGNED_FREQ = 76.8 # GHz
-RANGE_RESOLUTION = 0.1953125 # m
-VELOCITY_RESOLUTION = 0.41968030701528203 # m/s
-RANGE_SIZE = 256
-DOPPLER_SIZE = 64
-AZIMUTH_SIZE = 256
-ANGULAR_RESOLUTION = np.pi / 2 / AZIMUTH_SIZE # radians
-VELOCITY_MIN = - VELOCITY_RESOLUTION * DOPPLER_SIZE/2
-VELOCITY_MAX = VELOCITY_RESOLUTION * DOPPLER_SIZE/2
-
 def generateImage(RAD_mag, ax):
     new_mag = getLog(getSumDim(RAD_mag, ax), scalar=10, log_10=True)
     image = norm2Image(new_mag)[..., :3]
@@ -25,7 +13,7 @@ def generateImage(RAD_mag, ax):
 
 def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
             window_sizes, max_disparity_channels):
-    fig = plt.figure()
+    fig = plt.figure(figsize = (25, 15))
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
@@ -40,29 +28,34 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
         RAD_mag = getMagnitude(RAD, power_order=2)
         RA_img = generateImage(RAD_mag, -1)
         RD_img = generateImage(RAD_mag, 1)
+        RAD_mag = getLog(RAD_mag, scalar=10, log_10=True)
 
         this_frame = Frame(RAD_mag, RAD_mask)
-        test_pairs = slam(this_frame)
+        slam(this_frame)
+
+        t_all = []
+        for i in range(len(slam.H_all)):
+            H = slam.H_all[i]
+            t = H[:2, 2]
+            t_all.append([t[0], t[1]])
+        t_all = np.array(t_all)
 
         ax1.clear()
+        ax1.plot(t_all[:, 0], t_all[:, 1], 'g')
+        ax1.scatter(slam.pcl[:, 0], slam.pcl[:, 1], s=0.2, c='r')
         ax2.clear()
-        ax1.imshow(RA_img)
-        ax2.imshow(RD_img)
-        if test_pairs is not None:
-            print(test_pairs.shape)
-            for i in range(len(test_pairs)):
-                r1, a1, d1, r2, a2, d2 = test_pairs[i]
+        ax2.imshow(RA_img)
+        if slam.id_pairs is not None:
+            for i in range(len(slam.id_pairs)):
+                r1, a1, d1, r2, a2, d2 = slam.id_pairs[i]
 
-                ax1.scatter(a1, r1, s=0.5, c='r')
-                ax1.plot(np.array([[a1, r1], [a2, r2]]), 'r')
-                ax1.scatter(a2, r2, s=0.5, c='b')
+                ax2.scatter(a1, r1, s=0.5, c='r')
+                ax2.plot([a1, a2], [r1, r2], 'r')
+                ax2.scatter(a2, r2, s=0.5, c='b')
 
-                ax2.scatter(d1, r1, s=0.5, c='r')
-                ax2.plot(np.array([[d1, r1], [d2, r2]]), 'r')
-                ax2.scatter(d2, r2, s=0.5, c='b')
-
-        fig.canvas.draw()
-        plt.pause(0.1)
+        # fig.canvas.draw()
+        plt.savefig(os.path.join(save_dir, "result.png"))
+        # plt.pause(0.1)
 
 
 if __name__ == "__main__":
@@ -72,10 +65,10 @@ if __name__ == "__main__":
     mask_dir = "/home/ao/Documents/stereo_radar_calibration_annotation/radar_process/radar_ral_process/radar_RAD_mask"
 
     save_dir = "./results"
-    sequences = [0, 1000]
+    sequences = [20, 1000]
 
-    window_half_sizes = [2, 2, 2]
-    max_disparity_channels = [10, 10, 10]
+    window_half_sizes = [8, 8, 5]
+    max_disparity_channels = [15, 15, 5]
     main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
         window_half_sizes, max_disparity_channels)
 

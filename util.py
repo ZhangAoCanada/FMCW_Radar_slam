@@ -4,6 +4,18 @@ import os
 import matplotlib.pyplot as plt
 from glob import glob
 
+# Radar Configuration
+RADAR_CONFIG_FREQ = 77 # GHz
+DESIGNED_FREQ = 76.8 # GHz
+RANGE_RESOLUTION = 0.1953125 # m
+VELOCITY_RESOLUTION = 0.41968030701528203 # m/s
+RANGE_SIZE = 256
+DOPPLER_SIZE = 64
+AZIMUTH_SIZE = 256
+ANGULAR_RESOLUTION = np.pi / 2 / AZIMUTH_SIZE # radians
+VELOCITY_MIN = - VELOCITY_RESOLUTION * DOPPLER_SIZE/2
+VELOCITY_MAX = VELOCITY_RESOLUTION * DOPPLER_SIZE/2
+
 def checkoutDir(directory):
     if not os.path.exists(directory):
         os.mkdir(directory)
@@ -65,5 +77,17 @@ def polarToCartesian(rho, phi):
     y = rho * np.sin(phi)
     return(x, y)
 
+def raId2CartPnt(r, a):
+    point_range = ((RANGE_SIZE-1) - r) * RANGE_RESOLUTION
+    point_angle = (a * (2*np.pi/AZIMUTH_SIZE) - np.pi) / \
+                    (2*np.pi*0.5*RADAR_CONFIG_FREQ/DESIGNED_FREQ)
+    point_angle = np.arcsin(point_angle)
+    point_zx = polarToCartesian(point_range, point_angle)
+    return point_zx[1], point_zx[0]
+
+def addonesToLastCol(target_array):
+    adding_ones = np.ones([target_array.shape[0], 1])
+    output_array = np.concatenate([target_array, adding_ones], axis=-1)
+    return output_array
 
 
