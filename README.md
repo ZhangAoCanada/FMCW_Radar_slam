@@ -11,3 +11,5 @@ It basically works, but sometimes it throws some rotation or translation errors.
 - 1. Find a way to optimize the R | t matrices.
 
 - 2. Find a better way for matching points filtering.
+
+- 3. Consider multiple frames instead of only 2 frames each time (Key Frame?).
