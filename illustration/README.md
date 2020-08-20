@@ -18,7 +18,7 @@ Left is called **Range-Doppler** spectrum, **RD** for short. Right is **Range-Az
 
 - To change the **RA** to more readable representations in Cartesian coordinates, function `raId2CartPnt` in `util.py`.
 
-- The second dir is called `radar_RAD_mask`, as you can see. It has same number of frames as **RAD** data with size [256, 256, 64]. They are results of me processing all the **RAD** matrices. They are generally just masks, with 1 telling you there is an object point detected and 0 telling you there is nothing but noise. As the picture above shows, those red points are the thing I am talking about.
+- The second dir is called `radar_RAD_mask`, as you can see. It has same number of frames as **RAD** data with size [256, 256, 64]. They are results of me processing all the **RAD** matrices. They are generally just masks, with 1 telling you there is an object point detected and 0 telling you there is nothing but noise. As the picture above shows, those red points are the things I am talking about.
 
 ## Algorithms that I implemented and Things that could be improved
 
