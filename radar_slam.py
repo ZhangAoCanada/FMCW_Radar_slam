@@ -5,6 +5,10 @@ from radar_frame import Frame
 import scipy.linalg as la
 
 def mirrorPad(arr, ax, pad_size):
+    """ 
+    Pad target array using its own values. Most feasible for FFT output.
+    E.X. Pad left: use the most right values.
+    """
     assert isinstance(pad_size, int)
     assert isinstance(ax, int)
     assert ax <= len(arr.shape)-1
@@ -22,22 +26,34 @@ def mirrorPad(arr, ax, pad_size):
     return output
 
 def matchFrames(frame1, frame2, pad_sizes, max_search_chs):
+    """
+    Point Matching Function: find the matching points on frame2 to frame1 points.
+
+    Args:
+        frame1          ->      frame object of frame1
+        frame2          ->      frame object of frame2
+        pad_size        ->      also referred to as window size, size [int, int, int]
+        max_search_chs  ->      maximum searching channels, size [int, int ,int]
+    """
     assert isinstance(pad_sizes, list)
     assert isinstance(max_search_chs, list)
     assert len(pad_sizes) == 3
     assert len(max_search_chs) == 3
 
+    ### mirror pad frame1 and frame2 for better window search
+    ### as RAD_mag is from FFT, shift pad is the best in this case
     frame1_pad = frame1.mag.copy()
     frame2_pad = frame2.mag.copy()
     for i in range(len(frame1.mag.shape)):
         frame1_pad = mirrorPad(frame1_pad, i, pad_sizes[i])
         frame2_pad = mirrorPad(frame2_pad, i, pad_sizes[i])
 
-    ### match from frame1 to frame2, may have overlaps
+    ######## match from frame1 to frame2, may have overlaps ############
     all_match_idx_pairs = []
     for i in range(len(frame1.idxes)):
         r_id, a_id, d_id = frame1.idxes[i]
         r_pid, a_pid, d_pid = r_id+pad_sizes[0], a_id+pad_sizes[1], d_id+pad_sizes[2]
+        ### frame 1 window
         frame1_block = frame1_pad[r_pid-pad_sizes[0]: r_pid+pad_sizes[0]+1, \
                                 a_pid-pad_sizes[1]: a_pid+pad_sizes[1]+1, \
                                 d_pid-pad_sizes[2]: d_pid+pad_sizes[2]+1]
@@ -50,9 +66,11 @@ def matchFrames(frame1, frame2, pad_sizes, max_search_chs):
                 np.abs(d2_id - d_id) <= max_search_chs[2]:
                 r2_pid, a2_pid, d2_pid = r2_id+pad_sizes[0], a2_id+pad_sizes[1], \
                                         d2_id+pad_sizes[2]
+                ### frame 2 window
                 frame2_block = frame2_pad[r2_pid-pad_sizes[0]: r2_pid+pad_sizes[0]+1, \
                                         a2_pid-pad_sizes[1]: a2_pid+pad_sizes[1]+1, \
                                         d2_pid-pad_sizes[2]: d2_pid+pad_sizes[2]+1]
+                ### Sum of Absolute Difference (cost function)
                 match_errs.append(np.sum(np.abs(frame1_block - frame2_block)))
                 match_idexes.append([r2_id, a2_id, d2_id])
         if len(match_errs) == 0:
@@ -66,7 +84,8 @@ def matchFrames(frame1, frame2, pad_sizes, max_search_chs):
         all_match_idx_pairs = None
     else:
         all_match_idx_pairs = np.array(all_match_idx_pairs)
-        ### match back from frame2 to frame1, remove overlaps
+
+        ########## match back from frame2 to frame1, remove overlaps ###################
         all_frame2_match_idx = all_match_idx_pairs[:, 3:6]
         frame2_match_idx, overlap_indices = np.unique(all_frame2_match_idx, \
                                             return_inverse=True, axis=0)
@@ -107,9 +126,11 @@ def matchFrames(frame1, frame2, pad_sizes, max_search_chs):
     return all_match_idx_pairs
 
 def calculateDirection(arr):
+    """ Calculate directions: [x, z] / sqrt(x**2 + z**2) """
     return arr / np.expand_dims(np.sqrt(np.sum(np.square(arr), axis=-1)), axis=-1)
 
 def transferIdpair2Pnts(pairs):
+    """ Transfer indexes [range, azimuth, doppler] to [x, z] """
     assert len(pairs.shape) == 2
     assert pairs.shape[1] == 6
     frame1_rad = pairs[:, :3]
@@ -123,6 +144,7 @@ def transferIdpair2Pnts(pairs):
     return frame1_xz, frame2_xz
 
 def directionFilter(match_pairs, round_resolution):
+    """ Direction filter: filter out the weird ones """
     assert len(match_pairs.shape) == 2
     assert match_pairs.shape[1] == 6
     frame1_rad = match_pairs[:, :3]
@@ -131,7 +153,7 @@ def directionFilter(match_pairs, round_resolution):
     frame1_rad, frame2_rad = transferIdpair2Pnts(match_pairs)
     ### calculate the directions
     directions = calculateDirection(frame2_rad - frame1_rad)
-
+    ### find the most occured direction within given direction resolution
     direct_round = np.around(directions/round_resolution, 0)
     direct_round, d_indices, d_round_counts = np.unique(direct_round, \
                                 return_inverse=True, return_counts=True, axis=0)
@@ -149,6 +171,11 @@ def directionFilter(match_pairs, round_resolution):
     return output_pairs
 
 def optimizeR(R):
+    """ 
+    Re-organize R matrix, reason: the least square method assume the R matrix has
+    4 parameters to solve, which actually is only 1 parameter (theta). The true R
+    is [[cos(theta), -sin(theta)], [sin(theta), cos(theta)]]
+    """
     sinTheta = (-R[0, 1] + R[1, 0]) / 2
     cosTheta = (R[0, 0] + R[1, 1]) / 2
     if sinTheta > 1:
@@ -164,6 +191,7 @@ class RSLAM:
         self.current_frame = None
         self.pad_sizes = pad_sizes
         self.max_search_chs = max_search_chs
+        ### H_w means H_world
         self.H_w = np.identity(3)
         self.H_all = [self.H_w]
         self.pcl = None
@@ -171,6 +199,7 @@ class RSLAM:
         self.round_resolution = 0.8
 
     def H2Hw(self, ):
+        """ Transfer R | t to R_world | t_world to find the map points """
         R_w = self.H_all[-1][:2, :2]
         t_w = self.H_all[-1][:2, 2:3]
         R = self.H[:2, :2]
@@ -180,14 +209,16 @@ class RSLAM:
         new_R = np.dot(R, R_w)
         self.H_w = np.concatenate([np.concatenate([new_R, new_t], -1), \
                                 np.array([[0., 0., 1.]])], 0)
-        print(len(self.H_all))
         print(R)
         print(t)
         print(self.H_w)
     
     def getRTMat(self, id_pairs):
+        """ Least Square for solving R | t matrices, equation: H * pnts1 = pnts2 """
         pnts1, pnts2 = transferIdpair2Pnts(id_pairs)
+        ### transfer [x, z] to [x, z, 1] for calculation convenience
         pnts1, pnts2 = addonesToLastCol(pnts1), addonesToLastCol(pnts2)
+        ### least square
         results = la.lstsq(pnts1, pnts2)
         self.H = results[0].T
         self.H = np.linalg.inv(self.H)
@@ -195,6 +226,7 @@ class RSLAM:
         self.H_all.append(self.H_w)
 
     def process(self,):
+        """ Main process function """
         self.id_pairs = matchFrames(self.prev_frame, self.current_frame, self.pad_sizes, \
                             self.max_search_chs)
         if self.id_pairs is not None:
@@ -206,6 +238,7 @@ class RSLAM:
                 self.getRTMat(self.id_pairs)
 
     def getPcl(self, frame):
+        """ transfer the points from current frame to world coordinate """
         if frame.pnts is not None and len(self.H_all) != 0:
             pnts_col1 = addonesToLastCol(frame.pnts) 
             pnts = np.dot(pnts_col1, self.H_all[-1].T)
@@ -225,6 +258,7 @@ class RSLAM:
         self.getPcl(frame)
 
 if __name__ == "__main__":
+    #### random test mirrorPad function, hahaha
     pad_size = 4
     a = np.arange(12).reshape(3,4)
     print(a)

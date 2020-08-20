@@ -14,6 +14,9 @@ VELOCITY_MIN = - VELOCITY_RESOLUTION * DOPPLER_SIZE/2
 VELOCITY_MAX = VELOCITY_RESOLUTION * DOPPLER_SIZE/2
 
 class Frame:
+    """
+    This is a class for conveniencely getting the information we want
+    """
     def __init__(self, RAD_mag, RAD_mask):
         self.mask = RAD_mask
         self.mag = RAD_mag
@@ -21,6 +24,7 @@ class Frame:
         self.pnts = self.getPcl()
 
     def getIdx(self):
+        """ Get the indexes from Range, Azimuth, Doppler dimensions """
         output_idxes = []
         for i in range(self.mask.shape[0]):
             for j in range(self.mask.shape[1]):
@@ -34,6 +38,7 @@ class Frame:
         return output_idxes
 
     def getPcl(self):
+        """ Transfer [range, angle] to [x, z] """
         self.RA_mask = np.where(getSumDim(self.mask, -1)>0., 1., 0.)
         output_pcl = []
         for i in range(self.RA_mask.shape[0]):
