@@ -24,8 +24,10 @@ def generateImage(RAD_mag, ax):
 def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
             window_sizes, max_disparity_channels):
     fig = plt.figure(figsize = (25, 15))
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
+
+    ax1 = fig.add_subplot(131)
+    ax2 = fig.add_subplot(132)
+    ax3 = fig.add_subplot(133)
 
     slam = RSLAM(window_sizes, max_disparity_channels)
     checkoutDir(save_dir)
@@ -57,11 +59,18 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
             t_all.append([t[0], t[1]])
         t_all = np.array(t_all)
 
+        ### draw point cloud 
         ax1.clear()
         ax1.plot(t_all[:, 0], t_all[:, 1], 'g')
         ax1.scatter(slam.pcl[:, 0], slam.pcl[:, 1], s=0.2, c='r')
+        ax1.set_xlabel("x (m)")
+        ax1.set_ylabel("z (m)")
+        
+        ### draw RA image
         ax2.clear()
         ax2.imshow(RA_img)
+        ax3.clear()
+        ax3.imshow(RD_img)
         ### show the point match on RA image
         if slam.id_pairs is not None:
             for i in range(len(slam.id_pairs)):
@@ -71,9 +80,18 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
                 ax2.plot([a1, a2], [r1, r2], 'r')
                 ax2.scatter(a2, r2, s=0.5, c='b')
 
-        plt.savefig(os.path.join(save_dir, "result.png"))
-        # fig.canvas.draw()
-        # plt.pause(0.1)
+                ax3.scatter(d1, r1, s=0.5, c='r')
+                ax3.plot([d1, d2], [r1, r2], 'r')
+                ax3.scatter(d2, r2, s=0.5, c='b')
+
+        ax2.set_xlabel("angle")
+        ax2.set_ylabel("range")
+        ax3.set_xlabel("velocity")
+        ax3.set_ylabel("range")
+
+        # plt.savefig(os.path.join(save_dir, "result.png"))
+        fig.canvas.draw()
+        plt.pause(0.1)
 
 
 if __name__ == "__main__":
@@ -88,5 +106,5 @@ if __name__ == "__main__":
     window_half_sizes = [8, 8, 5]
     max_disparity_channels = [15, 15, 5]
     main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
-        window_half_sizes, max_disparity_channels)
+            window_half_sizes, max_disparity_channels)
 
