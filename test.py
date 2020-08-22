@@ -68,9 +68,9 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
         
         ### draw RA image
         ax2.clear()
-        ax2.imshow(RA_img)
         ax3.clear()
-        ax3.imshow(RD_img)
+        imgPlot(RA_img, ax2, None, 1, "RA")
+        imgPlot(RD_img, ax3, None, 1, "RD")
         ### show the point match on RA image
         if slam.id_pairs is not None:
             for i in range(len(slam.id_pairs)):
@@ -83,11 +83,6 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
                 ax3.scatter(d1, r1, s=0.5, c='r')
                 ax3.plot([d1, d2], [r1, r2], 'r')
                 ax3.scatter(d2, r2, s=0.5, c='b')
-
-        ax2.set_xlabel("angle")
-        ax2.set_ylabel("range")
-        ax3.set_xlabel("velocity")
-        ax3.set_ylabel("range")
 
         # plt.savefig(os.path.join(save_dir, "result.png"))
         fig.canvas.draw()

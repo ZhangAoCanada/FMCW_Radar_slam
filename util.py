@@ -102,4 +102,33 @@ def addonesToLastCol(target_array):
     output_array = np.concatenate([target_array, adding_ones], axis=-1)
     return output_array
 
+def imgPlot(img, ax, cmap, alpha, title=None):
+    """ image plotting (customized when plotting RAD) """
+    ax.imshow(img, cmap=cmap, alpha=alpha)
+    if title == "RD":
+        ax.set_xticks([0, 16, 32, 48, 63])
+        ax.set_xticklabels([-13, -6.5, 0, 6.5, 13])
+        ax.set_yticks([0, 64, 128, 192, 255])
+        ax.set_yticklabels([50, 37.5, 25, 12.5, 0])
+        ax.set_xlabel("velocity (m/s)")
+        ax.set_ylabel("range (m)")
+    elif title == "RA":
+        ax.set_xticks([0, 64, 128, 192, 255])
+        ax.set_xticklabels([-90, -45, 0, 45, 90])
+        ax.set_yticks([0, 64, 128, 192, 255])
+        ax.set_yticklabels([50, 37.5, 25, 12.5, 0])
+        ax.set_xlabel("angle (degrees)")
+        ax.set_ylabel("range (m)")
+    elif title == "RA mask in cartesian":
+        ax.set_xticks([0, 128, 256, 384, 512])
+        ax.set_xticklabels([-50, -25, 0, 25, 50])
+        ax.set_yticks([0, 64, 128, 192, 255])
+        ax.set_yticklabels([50, 37.5, 25, 12.5, 0])
+        ax.set_xlabel("x (m)")
+        ax.set_ylabel("z (m)")
+    else:
+        ax.axis('off')
+    if title is not None:
+        ax.set_title(title)
+
 
