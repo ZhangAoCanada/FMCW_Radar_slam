@@ -23,7 +23,7 @@ def generateImage(RAD_mag, ax):
 
 def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
             window_sizes, max_disparity_channels):
-    fig = plt.figure(figsize = (25, 15))
+    fig = plt.figure(figsize = (50, 15))
 
     ax1 = fig.add_subplot(131)
     ax2 = fig.add_subplot(132)
