@@ -84,9 +84,9 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
                 ax3.plot([d1, d2], [r1, r2], 'r')
                 ax3.scatter(d2, r2, s=0.5, c='b')
 
-        # plt.savefig(os.path.join(save_dir, "result.png"))
-        fig.canvas.draw()
-        plt.pause(0.1)
+        plt.savefig(os.path.join(save_dir, "result.png"))
+        # fig.canvas.draw()
+        # plt.pause(0.1)
 
 
 if __name__ == "__main__":
