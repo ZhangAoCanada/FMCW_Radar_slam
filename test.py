@@ -66,7 +66,7 @@ def main(radar_dir, img_dir, mask_dir, sequences, save_dir, \
         ax1.set_xlabel("x (m)")
         ax1.set_ylabel("z (m)")
         
-        ### draw RA image
+        ### draw RA and RD image
         ax2.clear()
         ax3.clear()
         imgPlot(RA_img, ax2, None, 1, "RA")
